@@ -36,11 +36,6 @@ static void BigInt_removeZeros(BigInt_t *Int)
 		Int->size--;
 		index++;
 	}
-
-//	if(Int->size <= 0)
-//	{
-//		Int->size = 1;
-//	}
 }
 
 void BigInt_Init(BigInt_t *Int, uint8_t buffer[])
@@ -51,10 +46,21 @@ void BigInt_Init(BigInt_t *Int, uint8_t buffer[])
 	/* fill the array with zeros */
 	BigInt_fillZeros(Int);
 
+	/* Get the sign */
+	if(buffer[index] == '-')
+	{
+		Int->sign 	=	1;
+		index++;
+	}
+	else
+	{
+		Int->sign	=	0;
+	}
+
 	/* calculate the size and convert from string to int */
 	while(buffer[index] != '\0')
 	{
-		Int->num[index] = buffer[index] - '0';
+		Int->num[sizeOfInt] = buffer[index] - '0';
 		sizeOfInt++;
 		index++;
 	}
@@ -70,31 +76,30 @@ void BigInt_Init(BigInt_t *Int, uint8_t buffer[])
 
 	/* remove the zeros from left 00123 --> 123 */
 	BigInt_removeZeros(Int);
-	//	index = 0;
-	//	while(Int->num[sizeOfInt - index - 1] == 0)
-	//	{
-	//		Int->size--;
-	//		index++;
-	//	}
-
 }
 
 void BigInt_print(BigInt_t *Int)
 {
-	uint32_t index;
-	for(index = 0; index < Int->size; index++)
+	uint32_t index, stopCondition = Int->size;
+
+	if(Int->sign == 1)
+	{
+		printf("-");
+	}
+
+	for(index = 0; index < stopCondition; index++)
 	{
 		printf("%u", Int->num[Int->size - index - 1]);
 	}
 	printf("\n");
 }
 
-void BigInt_add(BigInt_t *result, BigInt_t *Int1, BigInt_t *Int2)
+static void add(BigInt_t *result, BigInt_t *Int1, BigInt_t *Int2)
 {
 	uint32_t index;
 	uint32_t stopCondition = Int1->size > Int2->size ? Int1->size : Int2->size;
-	BigInt_fillZeros(result);
 
+	/* Addition Operation */
 	for(index = 0; index < stopCondition; index++)
 	{
 		result->num[index] 		= result->num[index] + Int1->num[index] + Int2->num[index];
@@ -102,6 +107,7 @@ void BigInt_add(BigInt_t *result, BigInt_t *Int1, BigInt_t *Int2)
 		result->num[index] 		= result->num[index] % 10;
 	}
 
+	/* if there is a carry out of the operation then increase the size */
 	if(result->num[index] == 1)
 	{
 		result->size = ++index;
@@ -110,41 +116,16 @@ void BigInt_add(BigInt_t *result, BigInt_t *Int1, BigInt_t *Int2)
 	{
 		result->size = index;
 	}
-
-
-	//	uint32_t index1, index2, index3;
-	//	uint8_t carry = 0;
-	//	for(index1 = 0, index2 = 0, index3 = 0; index1 < Int1->size && index2 < Int2->size; index1++, index2++, index3++)
-	//	{
-	//		result->num[index3] 	= Int1->num[index1] + Int2->num[index2] + carry;
-	//		carry					= result->num[index3] / 10;
-	//		result->num[index3] 	= result->num[index3] % 10;
-	//	}
-	//
-	//	for(; index1 < Int1->size; index1++, index3++)
-	//	{
-	//		result->num[index3] = Int1->num[index1] + carry;
-	//		carry = 0;
-	//	}
-	//
-	//	for(; index2 < Int2->size; index2++, index3++)
-	//	{
-	//		result->num[index3] = Int2->num[index2] + carry;
-	//		carry = 0;
-	//	}
-	//
-	//	result->num[index3++] = carry;
-	//
-	//	result->size = index3;
 }
 
-void BigInt_sub(BigInt_t *result, BigInt_t *Int1, BigInt_t *Int2)
+static void sub(BigInt_t *result, BigInt_t *Int1, BigInt_t *Int2)
 {
 	uint32_t index;
 	uint32_t stopCondition = Int1->size > Int2->size ? Int1->size : Int2->size;
-	BigInt_fillZeros(result);
+
 	result->num[0] = 1;
 
+	/* subtract by 10s complement */
 	for(index = 0; index < stopCondition; index++)
 	{
 		result->num[index] 		= result->num[index] + Int1->num[index] + (9 - Int2->num[index]);
@@ -154,34 +135,70 @@ void BigInt_sub(BigInt_t *result, BigInt_t *Int1, BigInt_t *Int2)
 
 	result->size = index;
 
-	BigInt_removeZeros(result);
+	/* check if the result is negative or not */
+	if(result->num[index] == 0)
+	{
+		/* get the complement */
+		stopCondition = result->size;
+		result->num[0] 	=	10 - result->num[0];
+		for(index = 1; index < stopCondition; index++)
+		{
+			result->num[index] 	=	9 - result->num[index];
+		}
 
-	//	uint32_t index1, index2, index3;
-	//	uint8_t carry = 1;
-	//
-	////	uint32_t stopCondition = Int1->size > Int2->size ? Int1->size : Int2->size;
-	//	for(index1 = 0, index2 = 0, index3 = 0; index1 < Int1->size && index2 < Int2->size; index1++, index2++, index3++)
-	//	{
-	//		result->num[index3] 	= Int1->num[index1] + (9 - Int2->num[index2]) + carry;
-	//		carry					= result->num[index3] / 10;
-	//		result->num[index3] 	= result->num[index3] % 10;
-	//	}
-	//
-	//	for(; index1 < Int1->size; index1++, index3++)
-	//	{
-	//		result->num[index3] 	= Int1->num[index1] + 9 + carry;
-	//		carry					= result->num[index3] / 10;
-	//		result->num[index3] 	= result->num[index3] % 10;
-	//	}
-	//
-	//	for(; index2 < Int2->size; index2++, index3++)
-	//	{
-	//		result->num[index3] 	= Int2->num[index2] + 9 + carry;
-	//		carry					= result->num[index3] / 10;
-	//		result->num[index3] 	= result->num[index3] % 10;
-	//	}
-	//
-	//	result->size = index3;
+		result->sign	=	1;
+	}
+
+	BigInt_removeZeros(result);
+}
+
+void BigInt_add(BigInt_t *result, BigInt_t *Int1, BigInt_t *Int2)
+{
+	BigInt_fillZeros(result);
+
+	if((Int1->sign == 0) && (Int2->sign == 0))
+	{
+		result->sign	=	0;
+		add(result, Int1, Int2);
+	}
+	else if((Int1->sign == 1) && (Int2->sign == 0))
+	{
+		sub(result, Int2, Int1);
+	}
+	else if((Int1->sign == 0) && (Int2->sign == 1))
+	{
+		sub(result, Int1, Int2);
+	}
+	else
+	{
+		result->sign	=	1;
+		add(result, Int1, Int2);
+	}
+
+}
+
+void BigInt_sub(BigInt_t *result, BigInt_t *Int1, BigInt_t *Int2)
+{
+	BigInt_fillZeros(result);
+
+	if((Int1->sign == 0) && (Int2->sign == 0))
+	{
+		sub(result, Int1, Int2);
+	}
+	else if((Int1->sign == 1) && (Int2->sign == 0))
+	{
+		result->sign	=	1;
+		add(result, Int1, Int2);
+	}
+	else if((Int1->sign == 0) && (Int2->sign == 1))
+	{
+		result->sign	=	0;
+		add(result, Int1, Int2);
+	}
+	else
+	{
+		sub(result, Int2, Int1);
+	}
 }
 
 void BigInt_mul(BigInt_t *result, BigInt_t *Int1, BigInt_t *Int2)
@@ -189,7 +206,9 @@ void BigInt_mul(BigInt_t *result, BigInt_t *Int1, BigInt_t *Int2)
 	uint32_t index1, index2, index3 = 0;
 	BigInt_fillZeros(result);
 
-	for(index1 = 0; index1 < Int1->size; index1++)
+	result->sign	=	Int1->sign == Int2->sign ? Int1->sign == 1 ? 0 : 0 : 1;
+
+	for(index1 = 0; index1 < Int1->size; index1++, index3++)
 	{
 		for(index2 = 0, index3 = index1; index2 < Int2->size; index2++, index3++)
 		{
@@ -200,6 +219,10 @@ void BigInt_mul(BigInt_t *result, BigInt_t *Int1, BigInt_t *Int2)
 	}
 
 	result->size = index3;
+	BigInt_removeZeros(result);
 }
 
-void BigInt_div(BigInt_t *result, BigInt_t *Int1, BigInt_t *Int2);
+void BigInt_div(BigInt_t *result, BigInt_t *Int1, BigInt_t *Int2)
+{
+
+}

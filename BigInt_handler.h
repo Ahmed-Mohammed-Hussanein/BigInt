@@ -17,7 +17,8 @@ typedef uint8_t big[MAX_SIZE];
 typedef struct
 {
 	big num;
-//	uint8_t sign; // TODO
+	uint8_t sign;
+//	big fraction; // TODO
 	uint32_t size;
 
 } BigInt_t;
